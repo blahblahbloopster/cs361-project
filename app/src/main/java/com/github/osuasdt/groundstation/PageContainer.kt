@@ -1,5 +1,6 @@
 package com.github.osuasdt.groundstation
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -67,7 +68,9 @@ fun PageContainer(content: @Composable (Modifier) -> Unit) {
                     )
                 }
             ) { innerPadding ->
-                content(Modifier.padding(innerPadding).padding(16.dp))
+                Box(Modifier.padding(innerPadding).padding(16.dp)) {
+                    content(Modifier)
+                }
             }
         }
 

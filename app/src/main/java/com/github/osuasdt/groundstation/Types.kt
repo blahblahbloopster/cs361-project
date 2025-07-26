@@ -1,5 +1,6 @@
 package com.github.osuasdt.groundstation
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import kotlin.time.TimeMark
@@ -11,13 +12,14 @@ sealed class ChannelConfig(val delay: Float) {
 }
 
 enum class ChannelState {
-    OK, NO_CONTINUITY, DISABLED;
+    OK, NO_CONTINUITY, DISABLED, FIRED;
 
     @Composable
     fun color() = when (this) {
         OK -> Color.Green
         NO_CONTINUITY -> Color.Red
         DISABLED -> Color.Gray
+        FIRED -> MaterialTheme.colorScheme.primary
     }
 
     @Composable
@@ -25,6 +27,7 @@ enum class ChannelState {
         OK -> "Ready"
         NO_CONTINUITY -> "Fault"
         DISABLED -> "Disabled"
+        FIRED -> "Fired"
     }
 }
 

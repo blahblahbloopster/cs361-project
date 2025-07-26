@@ -26,13 +26,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import dagger.Provides
+import androidx.compose.ui.unit.sp
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.HiltAndroidApp
-import kotlinx.coroutines.CoroutineScope
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.time.TimeMark
 import kotlin.time.TimeSource
 
 @HiltAndroidApp
@@ -77,7 +75,10 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainView(computer: ComputerStatus) {
     PageContainer { modifier ->
-        DeploymentInfo(computer.channels, modifier)
+        Column(verticalArrangement = Arrangement.Top) {
+            DeploymentInfo(computer.channels, modifier.padding(0.dp, 8.dp))
+            StatusInfo(computer, modifier.padding(0.dp, 8.dp))
+        }
     }
 }
 
@@ -101,6 +102,26 @@ fun DeploymentInfo(channels: List<FullChannelInfo>, modifier: Modifier) {
     Row(modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.secondary, RoundedCornerShape(10.dp)), horizontalArrangement = Arrangement.SpaceEvenly) {
         channels.forEach {
             SingleChannelInfo(it, modifier)
+        }
+    }
+}
+
+@Composable
+fun StatusInfo(computer: ComputerStatus, modifier: Modifier) {
+    Column(modifier.border(1.dp, MaterialTheme.colorScheme.secondary, RoundedCornerShape(10.dp))) {
+        Box(modifier.padding(4.dp, 0.dp)) {
+            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                Text("%.5f, %.5f".format(computer.lat, computer.lon), fontSize = 24.sp)
+                // TODO: WGS84 altitude is not useful at all to the user, fix
+                Text("${computer.gpsAltMetersWGS84.toInt()} m", fontSize = 24.sp)
+            }
+        }
+
+        Box(modifier.padding(4.dp, 0.dp)) {
+            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                Text("${computer.sats} sats")
+                Text("state: ${computer.state.toString().lowercase()}")
+            }
         }
     }
 }
