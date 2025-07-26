@@ -67,7 +67,7 @@ fun PageContainer(content: @Composable (Modifier) -> Unit) {
                     )
                 }
             ) { innerPadding ->
-                content(Modifier.padding(innerPadding))
+                content(Modifier.padding(innerPadding).padding(16.dp))
             }
         }
 
