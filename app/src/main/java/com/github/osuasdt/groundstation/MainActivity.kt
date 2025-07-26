@@ -1,5 +1,6 @@
 package com.github.osuasdt.groundstation
 
+import android.app.Application
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -25,13 +26,50 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import dagger.Provides
+import dagger.hilt.android.AndroidEntryPoint
+import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.CoroutineScope
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlin.time.TimeMark
+import kotlin.time.TimeSource
 
+@HiltAndroidApp
+class GroundstationApplication : Application() {}
+
+interface ComputerRepository {
+    fun getComputer(): ComputerStatus
+}
+
+@Singleton
+class DefaultComputerRepository @Inject constructor() : ComputerRepository {
+    override fun getComputer(): ComputerStatus {
+        return ComputerStatus(
+            "procket",
+            listOf(
+                FullChannelInfo(1, ChannelConfig.DescentDeploy(200.0f, 0.0f), ChannelState.OK),
+                FullChannelInfo(2, ChannelConfig.ApogeeDeploy(0.0f), ChannelState.NO_CONTINUITY),
+                FullChannelInfo(3, ChannelConfig.DisabledChannel, ChannelState.DISABLED)
+            ),
+            45.0, -120.0, 0.0, 8,
+            0.0, 0.0,
+            ComputerState.PAD, 7.4, TimeSource.Monotonic.markNow()
+        )
+    }
+}
+
+//class ComputerInjector @Inject constructor(private val computer: ComputerStatus) {}
+
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @Inject lateinit var computer: DefaultComputerRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            //MainView()
+            MainView(computer.getComputer())
         }
     }
 }
