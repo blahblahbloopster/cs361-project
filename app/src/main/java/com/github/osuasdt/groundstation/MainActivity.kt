@@ -19,14 +19,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -43,14 +47,24 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.Serializable
 import javax.inject.Inject
 import kotlin.math.absoluteValue
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeMark
+
+@Serializable
+object Home
+@Serializable
+object Configure
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -60,16 +74,58 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MainView(computer.data)
+            val navController = rememberNavController()
+
+            NavHost(navController = navController, startDestination = Home) {
+                composable<Home> {
+                    MainView(navController, computer.data)
+                }
+                composable<Configure> {
+                    ConfigureView(navController)
+                }
+            }
         }
     }
 }
 
 @Composable
-fun MainView(flow: Flow<ComputerStatus>) {
+fun DrawerContent(controller: NavController) {
+    ModalDrawerSheet {
+        Text("bar title", modifier = Modifier.padding(16.dp))
+        HorizontalDivider()
+        NavigationDrawerItem(
+            label = { Text("Home") },
+            selected = false,  // FIXME
+            onClick = {
+                controller.navigate(route = Home)
+            }
+        )
+        NavigationDrawerItem(
+            label = { Text("Configure") },
+            selected = false,  // FIXME
+            onClick = {
+                controller.navigate(route = Configure)
+            }
+        )
+    }
+}
+
+@Composable
+fun ConfigureView(controller: NavController) {
+    PageContainer({ DrawerContent(controller) }) { modifier ->
+        LazyColumn(verticalArrangement = Arrangement.Top, modifier = modifier.fillMaxWidth()) {
+            item {
+                Text("Pyro", fontSize = 24.sp/*, modifier = modifier.align(Alignment.CenterHorizontally)*/)
+            }
+        }
+    }
+}
+
+@Composable
+fun MainView(controller: NavController, flow: Flow<ComputerStatus>) {
     val computer by flow.collectAsState(initial = ComputerStatus())
 
-    PageContainer(Pair({ FloatingActionButton({}) { Icon(Icons.Default.Edit, contentDescription = "Edit") } }, FabPosition.End)) { modifier ->
+    PageContainer({ DrawerContent(controller) }, Pair({ FloatingActionButton({}) { Icon(Icons.Default.Edit, contentDescription = "Edit") } }, FabPosition.End)) { modifier ->
         Column(verticalArrangement = Arrangement.Top) {
             DeploymentInfo(computer.channels, modifier.padding(0.dp, 8.dp))
             StatusInfo(computer, modifier.padding(0.dp, 8.dp))

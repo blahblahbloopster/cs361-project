@@ -22,27 +22,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.github.osuasdt.groundstation.ui.theme.GroundstationTheme
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PageContainer(fab: Pair<@Composable () -> Unit, FabPosition> = Pair({}, FabPosition.End), content: @Composable (Modifier) -> Unit) {
+fun PageContainer(drawerContent: @Composable () -> Unit, fab: Pair<@Composable () -> Unit, FabPosition> = Pair({}, FabPosition.End), content: @Composable (Modifier) -> Unit) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
     GroundstationTheme {
         ModalNavigationDrawer(
             drawerContent = {
-                ModalDrawerSheet {
-                    Text("bar title", modifier = Modifier.padding(16.dp))
-                    HorizontalDivider()
-                    NavigationDrawerItem(
-                        label = { Text("blah") },
-                        selected = false,
-                        onClick = {}
-                    )
-                }
+                drawerContent()
             },
             drawerState = drawerState
         ) {
