@@ -44,5 +44,6 @@ data class ComputerStatus(
     val baroAltMetersAGL: Double, val verticalVelocityMetersPerSecond: Double,
     val state: ComputerState,
     val battery: Double,
-    val timestamp: TimeMark
+    val timestamp: TimeMark,
+    val rssi: Double
 )
