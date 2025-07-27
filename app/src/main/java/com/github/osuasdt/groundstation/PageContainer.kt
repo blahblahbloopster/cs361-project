@@ -31,14 +31,37 @@ import kotlinx.serialization.Serializable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PageContainer(drawerContent: @Composable () -> Unit, fab: Pair<@Composable () -> Unit, FabPosition> = Pair({}, FabPosition.End), content: @Composable (Modifier) -> Unit) {
+fun PageContainer(toMain: () -> Unit, toConfig: () -> Unit, fab: Pair<@Composable () -> Unit, FabPosition> = Pair({}, FabPosition.End), bottomBar: @Composable () -> Unit = {}, content: @Composable (Modifier) -> Unit) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
     GroundstationTheme {
         ModalNavigationDrawer(
             drawerContent = {
-                drawerContent()
+                ModalDrawerSheet {
+                    Text("bar title", modifier = Modifier.padding(16.dp))
+                    HorizontalDivider()
+                    NavigationDrawerItem(
+                        label = { Text("Home") },
+                        selected = false,  // FIXME
+                        onClick = {
+                            toMain()
+                            scope.launch {
+                                drawerState.close()
+                            }
+                        }
+                    )
+                    NavigationDrawerItem(
+                        label = { Text("Configure") },
+                        selected = false,  // FIXME
+                        onClick = {
+                            toConfig()
+                            scope.launch {
+                                drawerState.close()
+                            }
+                        }
+                    )
+                }
             },
             drawerState = drawerState
         ) {
@@ -46,6 +69,7 @@ fun PageContainer(drawerContent: @Composable () -> Unit, fab: Pair<@Composable (
                 modifier = Modifier.fillMaxSize(),
                 floatingActionButton = fab.first,
                 floatingActionButtonPosition = fab.second,
+                bottomBar = bottomBar,
                 topBar = {
                     TopAppBar(
                         title = { Text("title goes here") },

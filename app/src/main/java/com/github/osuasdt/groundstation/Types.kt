@@ -9,7 +9,7 @@ import kotlin.time.TimeSource
 sealed class ChannelConfig(val delay: Float) {
     data object DisabledChannel : ChannelConfig(0.0f)
     class ApogeeDeploy(delay: Float) : ChannelConfig(delay)
-    class DescentDeploy(altitudeMeters: Float, delay: Float) : ChannelConfig(delay)
+    class DescentDeploy(val altitudeMeters: Float, delay: Float) : ChannelConfig(delay)
 }
 
 enum class ChannelState {
