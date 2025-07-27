@@ -1,6 +1,5 @@
 package com.github.osuasdt.groundstation
 
-import android.app.Application
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -22,6 +21,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.FabPosition
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,49 +44,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dagger.hilt.android.AndroidEntryPoint
-import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
-import javax.inject.Singleton
 import kotlin.math.absoluteValue
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeMark
-import kotlin.time.TimeSource
-
-@HiltAndroidApp
-class GroundstationApplication : Application() {
-    @Inject lateinit var computer: ComputerRepository
-}
-
-@Singleton
-class ComputerRepository @Inject constructor() {
-    //private val _data = MutableStateFlow(ComputerStatus())
-    //val data: Flow<ComputerStatus> = _data.asStateFlow()
-    val data: Flow<ComputerStatus> = flow {
-        while (true) {
-            emit(ComputerStatus(
-                "procket",
-                listOf(
-                    FullChannelInfo(1, ChannelConfig.DescentDeploy(200.0f, 0.0f), ChannelState.OK),
-                    FullChannelInfo(2, ChannelConfig.ApogeeDeploy(0.0f), ChannelState.NO_CONTINUITY),
-                    FullChannelInfo(3, ChannelConfig.DisabledChannel, ChannelState.DISABLED),
-                    FullChannelInfo(4, ChannelConfig.ApogeeDeploy(1.0f), ChannelState.FIRED)
-                ),
-                45.0, -120.0, 0.0, 8,
-                0.0, 0.0,
-                ComputerState.PAD, 7.4, TimeSource.Monotonic.markNow(), -90.0
-            ))
-
-            delay(1500)
-        }
-    }
-}
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -101,7 +69,7 @@ class MainActivity : ComponentActivity() {
 fun MainView(flow: Flow<ComputerStatus>) {
     val computer by flow.collectAsState(initial = ComputerStatus())
 
-    PageContainer { modifier ->
+    PageContainer(Pair({ FloatingActionButton({}) { Icon(Icons.Default.Edit, contentDescription = "Edit") } }, FabPosition.End)) { modifier ->
         Column(verticalArrangement = Arrangement.Top) {
             DeploymentInfo(computer.channels, modifier.padding(0.dp, 8.dp))
             StatusInfo(computer, modifier.padding(0.dp, 8.dp))
@@ -188,12 +156,3 @@ fun LastSeenIndicator(lastSeen: TimeMark, rssi: Double, modifier: Modifier) {
         Text("RSSI = ${rssi.toInt()} dBm")
     }
 }
-
-fun Duration.humanReadableString() = when {
-    this < 1.seconds -> "$inWholeMilliseconds ms"
-    this < 10.seconds -> "%d.%03d s".format(inWholeMilliseconds / 1000, inWholeMilliseconds % 1000)
-    this < 1.minutes -> "$inWholeSeconds s"
-    this < 1.hours -> { val s = inWholeSeconds; "%d:%02d".format(s / 60, s % 60) }
-    else -> { val s = inWholeSeconds; "%d:%02d:%02d".format(s / 3600, (s % 3600) / 60, s % 60) }
-}
-

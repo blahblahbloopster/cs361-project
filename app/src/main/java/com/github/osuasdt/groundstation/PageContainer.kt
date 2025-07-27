@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FabPosition
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -26,7 +27,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PageContainer(content: @Composable (Modifier) -> Unit) {
+fun PageContainer(fab: Pair<@Composable () -> Unit, FabPosition> = Pair({}, FabPosition.End), content: @Composable (Modifier) -> Unit) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -47,6 +48,8 @@ fun PageContainer(content: @Composable (Modifier) -> Unit) {
         ) {
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
+                floatingActionButton = fab.first,
+                floatingActionButtonPosition = fab.second,
                 topBar = {
                     TopAppBar(
                         title = { Text("title goes here") },
