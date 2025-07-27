@@ -4,6 +4,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import kotlin.time.TimeMark
+import kotlin.time.TimeSource
 
 sealed class ChannelConfig(val delay: Float) {
     data object DisabledChannel : ChannelConfig(0.0f)
@@ -46,4 +47,6 @@ data class ComputerStatus(
     val battery: Double,
     val timestamp: TimeMark,
     val rssi: Double
-)
+) {
+    constructor() : this("", listOf(), 0.0, 0.0, 0.0, 0, 0.0, 0.0, ComputerState.PAD, 0.0, TimeSource.Monotonic.markNow(), 0.0)
+}

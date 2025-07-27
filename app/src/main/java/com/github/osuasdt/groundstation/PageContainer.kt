@@ -73,12 +73,5 @@ fun PageContainer(content: @Composable (Modifier) -> Unit) {
                 }
             }
         }
-
-        //NavigationRail(
-        //    header = { Text("your mom") },
-        //    modifier = Modifier.padding(innerPadding)
-        //) {
-        //    //NavigationRailItem(selected = false, icon = { Icon })
-        //}
     }
 }

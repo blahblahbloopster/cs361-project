@@ -2,12 +2,11 @@ package com.github.osuasdt.groundstation
 
 import android.app.Application
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.Animatable
-import androidx.compose.foundation.Canvas
+import androidx.compose.animation.core.SnapSpec
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -27,10 +26,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -44,6 +42,8 @@ import androidx.compose.ui.unit.sp
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.absoluteValue
@@ -57,52 +57,50 @@ import kotlin.time.TimeSource
 
 @HiltAndroidApp
 class GroundstationApplication : Application() {
-    @Inject lateinit var computer: DefaultComputerRepository
-
-    override fun onCreate() {
-        super.onCreate()
-
-        Log.i("application", "$computer")
-    }
-}
-
-interface ComputerRepository {
-    fun getComputer(): ComputerStatus
+    @Inject lateinit var computer: ComputerRepository
 }
 
 @Singleton
-class DefaultComputerRepository @Inject constructor() : ComputerRepository {
-    override fun getComputer(): ComputerStatus {
-        return ComputerStatus(
-            "procket",
-            listOf(
-                FullChannelInfo(1, ChannelConfig.DescentDeploy(200.0f, 0.0f), ChannelState.OK),
-                FullChannelInfo(2, ChannelConfig.ApogeeDeploy(0.0f), ChannelState.NO_CONTINUITY),
-                FullChannelInfo(3, ChannelConfig.DisabledChannel, ChannelState.DISABLED),
-                FullChannelInfo(4, ChannelConfig.ApogeeDeploy(1.0f), ChannelState.FIRED)
-            ),
-            45.0, -120.0, 0.0, 8,
-            0.0, 0.0,
-            ComputerState.PAD, 7.4, TimeSource.Monotonic.markNow(), -90.0
-        )
+class ComputerRepository @Inject constructor() {
+    //private val _data = MutableStateFlow(ComputerStatus())
+    //val data: Flow<ComputerStatus> = _data.asStateFlow()
+    val data: Flow<ComputerStatus> = flow {
+        while (true) {
+            emit(ComputerStatus(
+                "procket",
+                listOf(
+                    FullChannelInfo(1, ChannelConfig.DescentDeploy(200.0f, 0.0f), ChannelState.OK),
+                    FullChannelInfo(2, ChannelConfig.ApogeeDeploy(0.0f), ChannelState.NO_CONTINUITY),
+                    FullChannelInfo(3, ChannelConfig.DisabledChannel, ChannelState.DISABLED),
+                    FullChannelInfo(4, ChannelConfig.ApogeeDeploy(1.0f), ChannelState.FIRED)
+                ),
+                45.0, -120.0, 0.0, 8,
+                0.0, 0.0,
+                ComputerState.PAD, 7.4, TimeSource.Monotonic.markNow(), -90.0
+            ))
+
+            delay(1500)
+        }
     }
 }
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    @Inject lateinit var computer: DefaultComputerRepository
+    @Inject lateinit var computer: ComputerRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MainView(computer.getComputer())
+            MainView(computer.data)
         }
     }
 }
 
 @Composable
-fun MainView(computer: ComputerStatus) {
+fun MainView(flow: Flow<ComputerStatus>) {
+    val computer by flow.collectAsState(initial = ComputerStatus())
+
     PageContainer { modifier ->
         Column(verticalArrangement = Arrangement.Top) {
             DeploymentInfo(computer.channels, modifier.padding(0.dp, 8.dp))
@@ -158,13 +156,22 @@ fun LastSeenIndicator(lastSeen: TimeMark, rssi: Double, modifier: Modifier) {
     var elapsed by remember { mutableLongStateOf(0) }
     LaunchedEffect(lastSeen) {
         val expected = 5.seconds
+        val snap = SnapSpec<Float>()
         while (true) {
             val millis = lastSeen.elapsedNow().absoluteValue.inWholeMilliseconds
             val frac = (millis / expected.inWholeMilliseconds.toFloat()).coerceAtMost(1.0f)
+            // snap bar to zero if it went down
+            if (millis < elapsed) {
+                fraction.animateTo(frac, animationSpec = snap)
+            } else {
+                fraction.animateTo(frac)
+            }
             elapsed = millis
-            fraction.animateTo(frac)
+
             if (elapsed > expected.inWholeMilliseconds) {
                 delay(25)
+            } else {
+                delay(10)
             }
         }
     }
@@ -183,9 +190,10 @@ fun LastSeenIndicator(lastSeen: TimeMark, rssi: Double, modifier: Modifier) {
 }
 
 fun Duration.humanReadableString() = when {
-    this < 1.seconds -> "${this.inWholeMilliseconds} ms"
-    this < 1.minutes -> "${this.inWholeSeconds} s"
-    this < 1.hours -> { val s = this.inWholeSeconds; "%d:%02d".format(s / 60, s % 60) }
-    else -> { val s = this.inWholeSeconds; "%d:%02d:%02d".format(s / 3600, (s % 3600) / 60, s % 60) }
+    this < 1.seconds -> "$inWholeMilliseconds ms"
+    this < 10.seconds -> "%d.%03d s".format(inWholeMilliseconds / 1000, inWholeMilliseconds % 1000)
+    this < 1.minutes -> "$inWholeSeconds s"
+    this < 1.hours -> { val s = inWholeSeconds; "%d:%02d".format(s / 60, s % 60) }
+    else -> { val s = inWholeSeconds; "%d:%02d:%02d".format(s / 3600, (s % 3600) / 60, s % 60) }
 }
 
