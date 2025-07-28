@@ -27,7 +27,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PageContainer(toMain: () -> Unit, toConfig: () -> Unit, fab: Pair<@Composable () -> Unit, FabPosition> = Pair({}, FabPosition.End), bottomBar: @Composable () -> Unit = {}, content: @Composable (Modifier) -> Unit) {
+fun PageContainer(title: String, toMain: () -> Unit, toConfig: () -> Unit, fab: Pair<@Composable () -> Unit, FabPosition> = Pair({}, FabPosition.End), bottomBar: @Composable () -> Unit = {}, content: @Composable (Modifier) -> Unit) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -35,7 +35,7 @@ fun PageContainer(toMain: () -> Unit, toConfig: () -> Unit, fab: Pair<@Composabl
         ModalNavigationDrawer(
             drawerContent = {
                 ModalDrawerSheet {
-                    Text("bar title", modifier = Modifier.padding(16.dp))
+                    Text(title, modifier = Modifier.padding(16.dp))
                     HorizontalDivider()
                     NavigationDrawerItem(
                         label = { Text("Home") },
@@ -68,7 +68,7 @@ fun PageContainer(toMain: () -> Unit, toConfig: () -> Unit, fab: Pair<@Composabl
                 bottomBar = bottomBar,
                 topBar = {
                     TopAppBar(
-                        title = { Text("title goes here") },
+                        title = { Text(title) },
                         navigationIcon = {
                             IconButton(
                                 onClick = {

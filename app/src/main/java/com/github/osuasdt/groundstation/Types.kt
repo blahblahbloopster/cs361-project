@@ -10,18 +10,22 @@ import kotlin.time.TimeSource
 sealed class ChannelConfig(val delay: Float) {
     @Composable
     abstract fun color(): Color
+    abstract fun summary(): String
 
     data object DisabledChannel : ChannelConfig(0.0f) {
         @Composable
         override fun color(): Color = MaterialTheme.colorScheme.onBackground
+        override fun summary() = "Disabled"
     }
     class ApogeeDeploy(delay: Float) : ChannelConfig(delay) {
         @Composable
         override fun color(): Color = MaterialTheme.colorScheme.tertiary
+        override fun summary() = "Drogue"
     }
     class DescentDeploy(val altitudeMeters: Float, delay: Float) : ChannelConfig(delay) {
         @Composable
         override fun color(): Color = MaterialTheme.colorScheme.primary
+        override fun summary() = "At $altitudeMeters m"
     }
 }
 
@@ -52,6 +56,7 @@ enum class ComputerState {
 }
 
 data class ComputerStatus(
+    val uuid: Long,
     val name: String, val channels: List<FullChannelInfo>,
     val lat: Double, val lon: Double, val gpsAltMetersWGS84: Double,
     val sats: Int,
@@ -61,5 +66,15 @@ data class ComputerStatus(
     val timestamp: TimeMark,
     val rssi: Double
 ) {
-    constructor() : this("", listOf(), 0.0, 0.0, 0.0, 0, 0.0, 0.0, ComputerState.PAD, 0.0, TimeSource.Monotonic.markNow(), 0.0)
+    constructor() : this(0, "", listOf(), 0.0, 0.0, 0.0, 0, 0.0, 0.0, ComputerState.PAD, 0.0, TimeSource.Monotonic.markNow(), 0.0)
+
+    fun replaceChannelConfig(idx: Int, config: ChannelConfig): ComputerStatus {
+        val ch = channels.toMutableList()
+        ch[idx] = FullChannelInfo(ch[idx].number, config, ch[idx].state)
+        return ComputerStatus(
+            uuid, name, ch,
+            lat, lon, gpsAltMetersWGS84,
+            sats, baroAltMetersAGL, verticalVelocityMetersPerSecond, state, battery, timestamp, rssi
+        )
+    }
 }

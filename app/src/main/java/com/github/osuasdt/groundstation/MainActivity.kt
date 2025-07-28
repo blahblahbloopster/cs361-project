@@ -91,13 +91,14 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val navController = rememberNavController()
+            var modified by remember { mutableStateOf(computer.last()) }
 
             NavHost(navController = navController, startDestination = Home) {
                 composable<Home> {
-                    MainView({}, { navController.navigate(Configure) }, computer.data)
+                    MainView({}, { modified = computer.last(); navController.navigate(Configure) }, computer.data)
                 }
                 composable<Configure> {
-                    ConfigureView({ navController.navigate(Home) }, {}, computer)
+                    ConfigureView({ navController.navigate(Home) }, {}, computer, modified, { modified = it })
                 }
             }
         }
@@ -105,9 +106,9 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun ConfigureView(toMain: () -> Unit, toConfig: () -> Unit, repository: ComputerRepository) {
-    val computer by repository.data.collectAsState(initial = ComputerStatus())
-    PageContainer(toMain, toConfig, bottomBar = {
+fun ConfigureView(toMain: () -> Unit, toConfig: () -> Unit, repository: ComputerRepository, modified: ComputerStatus, modifiedModified: (ComputerStatus) -> Unit) {
+    val computer by repository.data.collectAsState(initial = repository.last())
+    PageContainer(repository.last().name, toMain, toConfig, bottomBar = {
         BottomAppBar {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                 IconButton(toMain, modifier = Modifier.fillMaxHeight().aspectRatio(1.0f, true)) {
@@ -116,7 +117,7 @@ fun ConfigureView(toMain: () -> Unit, toConfig: () -> Unit, repository: Computer
                 IconButton({  }, modifier = Modifier.fillMaxHeight().aspectRatio(1.0f, true)) {
                     Icon(Icons.Default.Refresh, "Reset")
                 }
-                IconButton({ repository.updateComputer() }, modifier = Modifier.fillMaxHeight().aspectRatio(1.0f, true)) {
+                IconButton({ repository.updateComputer { modified }; toMain() }, modifier = Modifier.fillMaxHeight().aspectRatio(1.0f, true)) {
                     Icon(Icons.Default.Check, "Apply")
                 }
             }
@@ -125,22 +126,22 @@ fun ConfigureView(toMain: () -> Unit, toConfig: () -> Unit, repository: Computer
         Column(verticalArrangement = Arrangement.Top, modifier = modifier.fillMaxWidth()) {
             Text("Pyro", fontSize = 24.sp, modifier = modifier.align(Alignment.CenterHorizontally))
 
-            computer.channels.forEach { channel ->
-                var newConfig by remember { mutableStateOf(channel.config) }
+            computer.channels.forEachIndexed { idx, _ ->
+                //var newConfig by remember { mutableStateOf(channel.config) }
                 var expanded by remember { mutableStateOf(false) }
 
                 val hue: Float
                 val saturation: Float
-                when (newConfig) {
+                when (modified.channels[idx].config) {
                     is ChannelConfig.ApogeeDeploy -> { hue = 200.0f; saturation = 0.7f }
                     is ChannelConfig.DescentDeploy -> { hue = 0.0f; saturation = 0.7f }
                     ChannelConfig.DisabledChannel -> { hue = 0.0f; saturation = 0.0f }
                 }
                 val background = Color.hsl(hue, saturation, if (isSystemInDarkTheme()) 0.1f else 0.9f)
                 Row(Modifier.padding(0.dp, 8.dp).fillMaxWidth().height(80.dp).clip(CircleShape).background(background).border(1.dp, MaterialTheme.colorScheme.secondary, CircleShape).padding(12.dp, 4.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("${channel.number}", fontSize = 24.sp)
+                    Text("${modified.channels[idx].number}", fontSize = 24.sp)
                     Box(Modifier.weight(1.0f)) {
-                        when (val c = newConfig) {
+                        when (val c = modified.channels[idx].config) {
                             is ChannelConfig.ApogeeDeploy -> Button({ expanded = !expanded }, colors = ButtonColors(Color.Transparent, MaterialTheme.colorScheme.onBackground, Color.White, Color.Black), modifier = Modifier.fillMaxSize()) { Text("Apogee") }
                             is ChannelConfig.DescentDeploy -> {
                                 TextField(rememberTextFieldState("${c.altitudeMeters}"), prefix = { Text("At", modifier.padding(end = 8.dp)) }, suffix = { Text("m") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done), colors = TextFieldDefaults.colors(unfocusedContainerColor = background, focusedContainerColor = background))
@@ -154,15 +155,15 @@ fun ConfigureView(toMain: () -> Unit, toConfig: () -> Unit, repository: Computer
                         }
                         DropdownMenu(expanded, onDismissRequest = { expanded = false }) {
                             DropdownMenuItem(text = { Text("Apogee") }, onClick = {
-                                newConfig = ChannelConfig.ApogeeDeploy(0.0f)
+                                modifiedModified(modified.replaceChannelConfig(idx, ChannelConfig.ApogeeDeploy(0.0f)))
                                 expanded = false
                             })
                             DropdownMenuItem(text = { Text("Altitude") }, onClick = {
-                                newConfig = ChannelConfig.DescentDeploy(200.0f, 0.0f)
+                                modifiedModified(modified.replaceChannelConfig(idx, ChannelConfig.DescentDeploy(200.0f, 0.0f)))
                                 expanded = false
                             })
                             DropdownMenuItem(text = { Text("Disabled") }, onClick = {
-                                newConfig = ChannelConfig.DisabledChannel
+                                modifiedModified(modified.replaceChannelConfig(idx, ChannelConfig.DisabledChannel))
                                 expanded = false
                             })
                         }
@@ -177,7 +178,7 @@ fun ConfigureView(toMain: () -> Unit, toConfig: () -> Unit, repository: Computer
 fun MainView(toMain: () -> Unit, toConfig: () -> Unit, flow: Flow<ComputerStatus>) {
     val computer by flow.collectAsState(initial = ComputerStatus())
 
-    PageContainer(toMain, toConfig, Pair({ FloatingActionButton(toConfig, modifier = Modifier.size(80.dp), shape = CircleShape) { Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(30.dp)) } }, FabPosition.End)) { modifier ->
+    PageContainer(computer.name, toMain, toConfig, Pair({ FloatingActionButton(toConfig, modifier = Modifier.size(80.dp), shape = CircleShape) { Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(30.dp)) } }, FabPosition.End)) { modifier ->
         Column(verticalArrangement = Arrangement.Top) {
             DeploymentInfo(computer.channels, modifier.padding(0.dp, 8.dp))
             StatusInfo(computer, modifier.padding(0.dp, 8.dp))
@@ -190,8 +191,16 @@ fun MainView(toMain: () -> Unit, toConfig: () -> Unit, flow: Flow<ComputerStatus
 fun SingleChannelInfo(info: FullChannelInfo) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text("${info.number}")
-        Box(Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer)) {
-            Text("name", modifier = Modifier.padding(PaddingValues(8.dp, 0.dp)), color = MaterialTheme.colorScheme.onPrimaryContainer)
+        val hue: Float
+        val saturation: Float
+        when (info.config) {
+            is ChannelConfig.ApogeeDeploy -> { hue = 200.0f; saturation = 0.7f }
+            is ChannelConfig.DescentDeploy -> { hue = 0.0f; saturation = 0.7f }
+            ChannelConfig.DisabledChannel -> { hue = 0.0f; saturation = 0.0f }
+        }
+        val background = Color.hsl(hue, saturation, if (isSystemInDarkTheme()) 0.7f else 0.3f)
+        Box(Modifier.clip(CircleShape).background(background)) {
+            Text(info.config.summary(), modifier = Modifier.padding(PaddingValues(8.dp, 0.dp)), color = MaterialTheme.colorScheme.background)
         }
         Row {
             Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(info.state.color()).align(Alignment.CenterVertically))
