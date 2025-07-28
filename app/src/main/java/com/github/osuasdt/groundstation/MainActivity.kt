@@ -1,11 +1,13 @@
 package com.github.osuasdt.groundstation
 
+import android.content.ClipData
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.SnapSpec
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -31,8 +33,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
@@ -53,6 +57,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,6 +65,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -70,6 +77,7 @@ import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import javax.inject.Inject
 import kotlin.math.absoluteValue
@@ -222,8 +230,28 @@ fun DeploymentInfo(channels: List<FullChannelInfo>, modifier: Modifier) {
 @Composable
 fun StatusInfo(computer: ComputerStatus, modifier: Modifier) {
     Column(modifier.border(1.dp, MaterialTheme.colorScheme.secondary, RoundedCornerShape(10.dp)).padding(6.dp)) {
-        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-            Text("%.5f, %.5f".format(computer.lat, computer.lon), fontSize = 24.sp)
+        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            val background = if (isSystemInDarkTheme()) Color(0xFF202020) else Color(0xFFD0D0D0)
+            val stroke = if (isSystemInDarkTheme()) Color(0xFF888888) else Color(0xFF888888)
+            val manager = LocalClipboard.current
+            val scope = rememberCoroutineScope()
+
+            Button({
+                scope.launch {
+                    manager.setClipEntry(
+                        ClipEntry(
+                            ClipData.newPlainText(
+                                "${computer.name} location",
+                                "%.5f, %.5f".format(computer.lat, computer.lon)
+                            )
+                        )
+                    )
+                }
+            }, shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, stroke), contentPadding = PaddingValues(2.dp), colors = ButtonColors(background, MaterialTheme.colorScheme.onBackground, Color.Red, Color.Red)) {
+                Text("%.5f, %.5f".format(computer.lat, computer.lon), fontSize = 24.sp)
+                Spacer(Modifier.width(8.dp))
+                Icon(Icons.Default.ContentCopy, "Share")
+            }
             // TODO: WGS84 altitude is not useful at all to the user, fix
             Text("${computer.gpsAltMetersWGS84.toInt()} m", fontSize = 24.sp)
         }
