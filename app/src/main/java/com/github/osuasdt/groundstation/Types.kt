@@ -1,15 +1,28 @@
 package com.github.osuasdt.groundstation
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import kotlin.time.TimeMark
 import kotlin.time.TimeSource
 
 sealed class ChannelConfig(val delay: Float) {
-    data object DisabledChannel : ChannelConfig(0.0f)
-    class ApogeeDeploy(delay: Float) : ChannelConfig(delay)
-    class DescentDeploy(val altitudeMeters: Float, delay: Float) : ChannelConfig(delay)
+    @Composable
+    abstract fun color(): Color
+
+    data object DisabledChannel : ChannelConfig(0.0f) {
+        @Composable
+        override fun color(): Color = MaterialTheme.colorScheme.onBackground
+    }
+    class ApogeeDeploy(delay: Float) : ChannelConfig(delay) {
+        @Composable
+        override fun color(): Color = MaterialTheme.colorScheme.tertiary
+    }
+    class DescentDeploy(val altitudeMeters: Float, delay: Float) : ChannelConfig(delay) {
+        @Composable
+        override fun color(): Color = MaterialTheme.colorScheme.primary
+    }
 }
 
 enum class ChannelState {

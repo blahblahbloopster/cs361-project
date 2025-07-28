@@ -8,22 +8,24 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.SnapSpec
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -33,19 +35,17 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -60,9 +60,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -109,13 +110,13 @@ fun ConfigureView(toMain: () -> Unit, toConfig: () -> Unit, repository: Computer
     PageContainer(toMain, toConfig, bottomBar = {
         BottomAppBar {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                IconButton({}, modifier = Modifier.fillMaxHeight()) {
+                IconButton({}, modifier = Modifier.fillMaxHeight().aspectRatio(1.0f, true)) {
                     Icon(Icons.Default.Close, "Cancel")
                 }
-                IconButton({}, modifier = Modifier.fillMaxHeight()) {
+                IconButton({}, modifier = Modifier.fillMaxHeight().aspectRatio(1.0f, true)) {
                     Icon(Icons.Default.Refresh, "Reset")
                 }
-                IconButton({}, modifier = Modifier.fillMaxHeight()) {
+                IconButton({}, modifier = Modifier.fillMaxHeight().aspectRatio(1.0f, true)) {
                     Icon(Icons.Default.Check, "Apply")
                 }
             }
@@ -127,15 +128,25 @@ fun ConfigureView(toMain: () -> Unit, toConfig: () -> Unit, repository: Computer
             computer.channels.forEach { channel ->
                 var newConfig by remember { mutableStateOf(channel.config) }
                 var expanded by remember { mutableStateOf(false) }
-                Row(Modifier.padding(0.dp, 8.dp).fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.secondary, CircleShape).padding(12.dp, 4.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+
+                val hue: Float
+                val saturation: Float
+                when (newConfig) {
+                    is ChannelConfig.ApogeeDeploy -> { hue = 200.0f; saturation = 0.7f }
+                    is ChannelConfig.DescentDeploy -> { hue = 0.0f; saturation = 0.7f }
+                    ChannelConfig.DisabledChannel -> { hue = 0.0f; saturation = 0.0f }
+                }
+                val background = Color.hsl(hue, saturation, if (isSystemInDarkTheme()) 0.1f else 0.9f)
+                Row(Modifier.padding(0.dp, 8.dp).fillMaxWidth().height(80.dp).clip(CircleShape).background(background).border(1.dp, MaterialTheme.colorScheme.secondary, CircleShape).padding(12.dp, 4.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("${channel.number}", fontSize = 24.sp)
-                    when (val c = newConfig) {
-                        is ChannelConfig.ApogeeDeploy -> Text("Apogee")
-                        is ChannelConfig.DescentDeploy -> {
-                            //val state = rememberTextFieldState()
-                            TextField(rememberTextFieldState())
+                    Box(Modifier.weight(1.0f)) {
+                        when (val c = newConfig) {
+                            is ChannelConfig.ApogeeDeploy -> Button({ expanded = !expanded }, colors = ButtonColors(Color.Transparent, MaterialTheme.colorScheme.onBackground, Color.White, Color.Black), modifier = Modifier.fillMaxSize()) { Text("Apogee") }
+                            is ChannelConfig.DescentDeploy -> {
+                                TextField(rememberTextFieldState("${c.altitudeMeters}"), prefix = { Text("At", modifier.padding(end = 8.dp)) }, suffix = { Text("m") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done), colors = TextFieldDefaults.colors(unfocusedContainerColor = background, focusedContainerColor = background))
+                            }
+                            ChannelConfig.DisabledChannel -> Button({ expanded = !expanded }, colors = ButtonColors(Color.Transparent, MaterialTheme.colorScheme.onBackground, Color.White, Color.Black), modifier = Modifier.fillMaxSize()) { Text("Disabled") }
                         }
-                        ChannelConfig.DisabledChannel -> Text("Disabled")
                     }
                     Box {
                         IconButton({ expanded = !expanded }) {
@@ -166,7 +177,7 @@ fun ConfigureView(toMain: () -> Unit, toConfig: () -> Unit, repository: Computer
 fun MainView(toMain: () -> Unit, toConfig: () -> Unit, flow: Flow<ComputerStatus>) {
     val computer by flow.collectAsState(initial = ComputerStatus())
 
-    PageContainer(toMain, toConfig, Pair({ FloatingActionButton(toConfig) { Icon(Icons.Default.Edit, contentDescription = "Edit") } }, FabPosition.End)) { modifier ->
+    PageContainer(toMain, toConfig, Pair({ FloatingActionButton(toConfig, modifier = Modifier.size(80.dp), shape = CircleShape) { Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(30.dp)) } }, FabPosition.End)) { modifier ->
         Column(verticalArrangement = Arrangement.Top) {
             DeploymentInfo(computer.channels, modifier.padding(0.dp, 8.dp))
             StatusInfo(computer, modifier.padding(0.dp, 8.dp))
