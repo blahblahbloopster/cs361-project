@@ -110,13 +110,13 @@ fun ConfigureView(toMain: () -> Unit, toConfig: () -> Unit, repository: Computer
     PageContainer(toMain, toConfig, bottomBar = {
         BottomAppBar {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                IconButton({}, modifier = Modifier.fillMaxHeight().aspectRatio(1.0f, true)) {
+                IconButton(toMain, modifier = Modifier.fillMaxHeight().aspectRatio(1.0f, true)) {
                     Icon(Icons.Default.Close, "Cancel")
                 }
-                IconButton({}, modifier = Modifier.fillMaxHeight().aspectRatio(1.0f, true)) {
+                IconButton({  }, modifier = Modifier.fillMaxHeight().aspectRatio(1.0f, true)) {
                     Icon(Icons.Default.Refresh, "Reset")
                 }
-                IconButton({}, modifier = Modifier.fillMaxHeight().aspectRatio(1.0f, true)) {
+                IconButton({ repository.updateComputer() }, modifier = Modifier.fillMaxHeight().aspectRatio(1.0f, true)) {
                     Icon(Icons.Default.Check, "Apply")
                 }
             }
