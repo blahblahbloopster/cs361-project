@@ -187,7 +187,7 @@ fun MainView(toMain: () -> Unit, toConfig: () -> Unit, flow: Flow<ComputerStatus
 }
 
 @Composable
-fun SingleChannelInfo(info: FullChannelInfo, modifier: Modifier) {
+fun SingleChannelInfo(info: FullChannelInfo) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text("${info.number}")
         Box(Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer)) {
@@ -205,7 +205,7 @@ fun SingleChannelInfo(info: FullChannelInfo, modifier: Modifier) {
 fun DeploymentInfo(channels: List<FullChannelInfo>, modifier: Modifier) {
     Row(modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.secondary, RoundedCornerShape(10.dp)), horizontalArrangement = Arrangement.SpaceEvenly) {
         channels.forEach {
-            SingleChannelInfo(it, modifier)
+            SingleChannelInfo(it)
         }
     }
 }
