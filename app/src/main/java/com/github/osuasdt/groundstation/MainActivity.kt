@@ -36,7 +36,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
@@ -122,7 +121,9 @@ fun ConfigureView(toMain: () -> Unit, toConfig: () -> Unit, repository: Computer
                 IconButton(toMain, modifier = Modifier.fillMaxHeight().aspectRatio(1.0f, true)) {
                     Icon(Icons.Default.Close, "Cancel")
                 }
-                IconButton({  }, modifier = Modifier.fillMaxHeight().aspectRatio(1.0f, true)) {
+                IconButton({
+                    modifiedModified(computer)
+                }, modifier = Modifier.fillMaxHeight().aspectRatio(1.0f, true)) {
                     Icon(Icons.Default.Refresh, "Reset")
                 }
                 IconButton({ repository.updateComputer { modified }; toMain() }, modifier = Modifier.fillMaxHeight().aspectRatio(1.0f, true)) {
@@ -135,7 +136,6 @@ fun ConfigureView(toMain: () -> Unit, toConfig: () -> Unit, repository: Computer
             Text("Pyro", fontSize = 24.sp, modifier = modifier.align(Alignment.CenterHorizontally))
 
             computer.channels.forEachIndexed { idx, _ ->
-                //var newConfig by remember { mutableStateOf(channel.config) }
                 var expanded by remember { mutableStateOf(false) }
 
                 val hue: Float
@@ -231,7 +231,7 @@ fun DeploymentInfo(channels: List<FullChannelInfo>, modifier: Modifier) {
 fun StatusInfo(computer: ComputerStatus, modifier: Modifier) {
     Column(modifier.border(1.dp, MaterialTheme.colorScheme.secondary, RoundedCornerShape(10.dp)).padding(6.dp)) {
         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            val background = if (isSystemInDarkTheme()) Color(0xFF202020) else Color(0xFFD0D0D0)
+            val background = if (isSystemInDarkTheme()) Color(0xFF202020) else Color(0xFFF0F0F0)
             val stroke = if (isSystemInDarkTheme()) Color(0xFF888888) else Color(0xFF888888)
             val manager = LocalClipboard.current
             val scope = rememberCoroutineScope()
