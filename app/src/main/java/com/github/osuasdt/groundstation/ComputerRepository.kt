@@ -1,5 +1,6 @@
 package com.github.osuasdt.groundstation
 
+import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -36,7 +37,20 @@ class ComputerRepository @Inject constructor() {
                     0.0, 0.0,
                     ComputerState.PAD, 7.4, TimeSource.Monotonic.markNow(), -90.0
                 )
-                _data.value = listOf(GroundStation(1234, listOf(st)))
+                val st2 = ComputerStatus(
+                    4646548974851325156,
+                    "chocket",
+                    listOf(
+                        FullChannelInfo(1, ChannelConfig.DescentDeploy(150.0f, 0.0f), ChannelState.OK),
+                        FullChannelInfo(2, ChannelConfig.ApogeeDeploy(0.0f), ChannelState.OK),
+                        FullChannelInfo(3, ChannelConfig.DisabledChannel, ChannelState.DISABLED),
+                        FullChannelInfo(4, ChannelConfig.DisabledChannel, ChannelState.DISABLED)
+                    ),
+                    45.0, -120.0, 0.0, 8,
+                    0.0, 0.0,
+                    ComputerState.PAD, 7.4, TimeSource.Monotonic.markNow(), -90.0
+                )
+                _data.value = listOf(GroundStation(1234, listOf(st, st2)))
                 delay(10000)
             }
         }
@@ -56,5 +70,6 @@ class ComputerRepository @Inject constructor() {
             }
             stations.add(GroundStation(g.id, computers))
         }
+        _data.value = stations
     }
 }

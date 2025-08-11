@@ -105,19 +105,30 @@ class MainActivity : ComponentActivity() {
             var modified by remember { mutableStateOf(lastComputerPacket) }
             val l by computer.data.collectAsState(emptyList())
             l.find { it.id == selectedGroundstation }?.let { lastGroundstationPacket = it; it.computers.find { c -> c.uuid == selectedComputer }?.let { c -> lastComputerPacket = c } }
+            if (l.isNotEmpty() && selectedGroundstation == null) {
+                selectedGroundstation = l.first().id
+            }
+            if (lastGroundstationPacket?.computers?.isNotEmpty() == true && selectedComputer == null) {
+                selectedComputer = lastGroundstationPacket!!.computers.first().uuid
+            }
+            val m = { g: Long, c: Long? ->
+                selectedGroundstation = g
+                selectedComputer = c
+            }
 
             NavHost(navController = navController, startDestination = Home) {
-                if (lastGroundstationPacket != null) {
-                    composable<Home> {
-                        lastComputerPacket?.let { c ->
-                            MainView({}, { modified = lastComputerPacket; navController.navigate(Configure) }, c)
-                        }
+                composable<Home> {
+                    if (lastComputerPacket != null) {
+                        // FIXME
+                        MainView({}, { modified = lastComputerPacket; navController.navigate(Configure) }, lastComputerPacket!!, computer.last(), selectedGroundstation!!, selectedComputer, m)
+                    } else {
+                        Text("Waiting for groundstation...")
                     }
-                    composable<Configure> {
-                        modified?.let { m ->
-                            lastComputerPacket?.let { c ->
-                                ConfigureView({ navController.navigate(Home) }, {}, m, { modified = it }, { computer.updateComputer(it.uuid) { _ -> it } }, c)
-                            }
+                }
+                composable<Configure> {
+                    modified?.let { mod ->
+                        lastComputerPacket?.let { c ->
+                            ConfigureView({ navController.navigate(Home) }, {}, mod, { modified = it }, { computer.updateComputer(it.uuid) { _ -> it } }, c, computer.last(), selectedGroundstation!!, selectedComputer, m)
                         }
                     }
                 }
@@ -127,8 +138,8 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun ConfigureView(toMain: () -> Unit, toConfig: () -> Unit, modified: ComputerStatus, modifiedModified: (ComputerStatus) -> Unit, saved: (ComputerStatus) -> Unit, computer: ComputerStatus) {
-    PageContainer(computer.name, toMain, toConfig, bottomBar = {
+fun ConfigureView(toMain: () -> Unit, toConfig: () -> Unit, modified: ComputerStatus, modifiedModified: (ComputerStatus) -> Unit, saved: (ComputerStatus) -> Unit, computer: ComputerStatus, availableGroundstations: List<GroundStation>, selectedGroundstation: Long, selectedComputer: Long?, selectionModified: (Long, Long?) -> Unit) {
+    PageContainer(computer.name, toMain, toConfig, availableGroundstations, selectedGroundstation, selectedComputer, selectionModified, bottomBar = {
         BottomAppBar {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                 IconButton(toMain, modifier = Modifier.fillMaxHeight().aspectRatio(1.0f, true)) {
@@ -194,8 +205,8 @@ fun ConfigureView(toMain: () -> Unit, toConfig: () -> Unit, modified: ComputerSt
 }
 
 @Composable
-fun MainView(toMain: () -> Unit, toConfig: () -> Unit, computer: ComputerStatus) {
-    PageContainer(computer.name, toMain, toConfig, Pair({ FloatingActionButton(toConfig, modifier = Modifier.size(80.dp), shape = CircleShape) { Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(30.dp)) } }, FabPosition.End)) { modifier ->
+fun MainView(toMain: () -> Unit, toConfig: () -> Unit, computer: ComputerStatus, availableGroundstations: List<GroundStation>, selectedGroundstation: Long, selectedComputer: Long?, selectionModified: (Long, Long?) -> Unit) {
+    PageContainer(computer.name, toMain, toConfig, availableGroundstations, selectedGroundstation, selectedComputer, selectionModified, Pair({ FloatingActionButton(toConfig, modifier = Modifier.size(80.dp), shape = CircleShape) { Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(30.dp)) } }, FabPosition.End)) { modifier ->
         Column(verticalArrangement = Arrangement.Top) {
             DeploymentInfo(computer.channels, modifier.padding(0.dp, 8.dp))
             StatusInfo(computer, modifier.padding(0.dp, 8.dp))
