@@ -78,3 +78,5 @@ data class ComputerStatus(
         )
     }
 }
+
+data class GroundStation(val id: Long, val computers: List<ComputerStatus>)

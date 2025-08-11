@@ -6,7 +6,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -14,10 +13,10 @@ import kotlin.time.TimeSource
 
 @Singleton
 class ComputerRepository @Inject constructor() {
-    private val _data = MutableStateFlow(ComputerStatus())
-    val data: Flow<ComputerStatus> = _data.asStateFlow()
+    private val _data = MutableStateFlow(listOf(GroundStation(0, emptyList())))
+    val data: Flow<List<GroundStation>> = _data.asStateFlow()
 
-    fun last(): ComputerStatus {
+    fun last(): List<GroundStation> {
         return _data.value
     }
 
@@ -37,13 +36,25 @@ class ComputerRepository @Inject constructor() {
                     0.0, 0.0,
                     ComputerState.PAD, 7.4, TimeSource.Monotonic.markNow(), -90.0
                 )
-                _data.value = st
+                _data.value = listOf(GroundStation(1234, listOf(st)))
                 delay(10000)
             }
         }
     }
 
-    fun updateComputer(block: (ComputerStatus) -> ComputerStatus) {
-        _data.value = block(_data.value)
+    fun updateComputer(uuid: Long, block: (ComputerStatus) -> ComputerStatus) {
+        //_data.value = _data.value
+        val stations = mutableListOf<GroundStation>()
+        for (g in _data.value) {
+            val computers = mutableListOf<ComputerStatus>()
+            for (c in g.computers) {
+                if (c.uuid == uuid) {
+                    computers.add(block(c))
+                } else {
+                    computers.add(c)
+                }
+            }
+            stations.add(GroundStation(g.id, computers))
+        }
     }
 }

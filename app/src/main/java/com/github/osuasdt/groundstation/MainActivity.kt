@@ -91,14 +91,28 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val navController = rememberNavController()
-            var modified by remember { mutableStateOf(computer.last()) }
+            var selectedGroundstation: Long? by remember { mutableStateOf(null) }
+            var lastGroundstationPacket: GroundStation? by remember { mutableStateOf(null) }
+            var selectedComputer: Long? by remember { mutableStateOf(null) }
+            var lastComputerPacket: ComputerStatus? by remember { mutableStateOf(null) }
+            var modified by remember { mutableStateOf(lastComputerPacket) }
+            val l by computer.data.collectAsState(emptyList())
+            l.find { it.id == selectedGroundstation }?.let { lastGroundstationPacket = it; it.computers.find { c -> c.uuid == selectedComputer }?.let { c -> lastComputerPacket = c } }
 
             NavHost(navController = navController, startDestination = Home) {
-                composable<Home> {
-                    MainView({}, { modified = computer.last(); navController.navigate(Configure) }, computer.data)
-                }
-                composable<Configure> {
-                    ConfigureView({ navController.navigate(Home) }, {}, computer, modified, { modified = it })
+                if (lastGroundstationPacket != null) {
+                    composable<Home> {
+                        lastComputerPacket?.let { c ->
+                            MainView({}, { modified = lastComputerPacket; navController.navigate(Configure) }, c)
+                        }
+                    }
+                    composable<Configure> {
+                        modified?.let { m ->
+                            lastComputerPacket?.let { c ->
+                                ConfigureView({ navController.navigate(Home) }, {}, m, { modified = it }, { computer.updateComputer(it.uuid) { _ -> it } }, c)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -106,18 +120,17 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun ConfigureView(toMain: () -> Unit, toConfig: () -> Unit, repository: ComputerRepository, modified: ComputerStatus, modifiedModified: (ComputerStatus) -> Unit) {
-    val computer by repository.data.collectAsState(initial = repository.last())
-    PageContainer(repository.last().name, toMain, toConfig, bottomBar = {
+fun ConfigureView(toMain: () -> Unit, toConfig: () -> Unit, modified: ComputerStatus, modifiedModified: (ComputerStatus) -> Unit, saved: (ComputerStatus) -> Unit, computer: ComputerStatus) {
+    PageContainer(computer.name, toMain, toConfig, bottomBar = {
         BottomAppBar {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                 IconButton(toMain, modifier = Modifier.fillMaxHeight().aspectRatio(1.0f, true)) {
                     Icon(Icons.Default.Close, "Cancel")
                 }
-                IconButton({  }, modifier = Modifier.fillMaxHeight().aspectRatio(1.0f, true)) {
+                IconButton({ modifiedModified(computer) }, modifier = Modifier.fillMaxHeight().aspectRatio(1.0f, true)) {
                     Icon(Icons.Default.Refresh, "Reset")
                 }
-                IconButton({ repository.updateComputer { modified }; toMain() }, modifier = Modifier.fillMaxHeight().aspectRatio(1.0f, true)) {
+                IconButton({ saved(modified); toMain() }, modifier = Modifier.fillMaxHeight().aspectRatio(1.0f, true)) {
                     Icon(Icons.Default.Check, "Apply")
                 }
             }
@@ -175,9 +188,7 @@ fun ConfigureView(toMain: () -> Unit, toConfig: () -> Unit, repository: Computer
 }
 
 @Composable
-fun MainView(toMain: () -> Unit, toConfig: () -> Unit, flow: Flow<ComputerStatus>) {
-    val computer by flow.collectAsState(initial = ComputerStatus())
-
+fun MainView(toMain: () -> Unit, toConfig: () -> Unit, computer: ComputerStatus) {
     PageContainer(computer.name, toMain, toConfig, Pair({ FloatingActionButton(toConfig, modifier = Modifier.size(80.dp), shape = CircleShape) { Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(30.dp)) } }, FabPosition.End)) { modifier ->
         Column(verticalArrangement = Arrangement.Top) {
             DeploymentInfo(computer.channels, modifier.padding(0.dp, 8.dp))
